@@ -1,9 +1,7 @@
 package com.dsh.hotzone
 
-import android.Manifest
 import android.app.Activity
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -11,19 +9,21 @@ import android.provider.Settings
 import android.util.Log
 import android.view.View
 import android.widget.Button
+import android.widget.SeekBar
 import android.widget.TextView
+import android.widget.Toast
+import kotlin.math.roundToInt
 
 class MainActivity : Activity() {
 
     private lateinit var status: TextView
     private lateinit var btnGrant: Button
     private lateinit var btnStart: Button
-    private lateinit var btnEdit: Button
-    private lateinit var btnDone: Button
     private lateinit var btnStop: Button
-    private lateinit var btnA11y: Button
-    private lateinit var a11yStatus: TextView
-    private lateinit var chkForward: android.widget.CheckBox
+    private lateinit var opacityBar: SeekBar
+    private lateinit var opacityLabel: TextView
+
+    private val prefs by lazy { getSharedPreferences("hotzone_prefs", MODE_PRIVATE) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,34 +32,31 @@ class MainActivity : Activity() {
         status = findViewById(R.id.status)
         btnGrant = findViewById(R.id.btnGrant)
         btnStart = findViewById(R.id.btnStart)
-        btnEdit = findViewById(R.id.btnEdit)
-        btnDone = findViewById(R.id.btnDone)
         btnStop = findViewById(R.id.btnStop)
-        btnA11y = findViewById(R.id.btnA11y)
-        a11yStatus = findViewById(R.id.a11yStatus)
-        chkForward = findViewById(R.id.chkForward)
-
-        val savedForward = getSharedPreferences("hotzone_prefs", MODE_PRIVATE)
-            .getBoolean("forward_tap", true)
-        chkForward.isChecked = savedForward
-        OverlayService.forwardEnabled = savedForward
-        chkForward.setOnCheckedChangeListener { _, checked ->
-            getSharedPreferences("hotzone_prefs", MODE_PRIVATE)
-                .edit().putBoolean("forward_tap", checked).apply()
-            OverlayService.forwardEnabled = checked
-        }
-        btnA11y.setOnClickListener {
-            try {
-                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-            } catch (e: Exception) {
-            }
-        }
+        opacityBar = findViewById(R.id.opacityBar)
+        opacityLabel = findViewById(R.id.opacityLabel)
 
         btnGrant.setOnClickListener { openOverlaySettings() }
-        btnStart.setOnClickListener { startOverlay() }
-        btnStop.setOnClickListener { stopOverlay() }
-        btnEdit.setOnClickListener { sendAction(OverlayService.ACTION_EDIT) }
-        btnDone.setOnClickListener { sendAction(OverlayService.ACTION_RUN) }
+        btnStart.setOnClickListener { startBall() }
+        btnStop.setOnClickListener { stopBall() }
+
+        val saved = prefs.getFloat("ball_opacity", 0.55f)
+        opacityBar.progress = (((saved - 0.1f) / 0.9f) * 100f).roundToInt().coerceIn(0, 100)
+        updateOpacityLabel(saved)
+
+        opacityBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(bar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val v = 0.1f + progress / 100f * 0.9f
+                updateOpacityLabel(v)
+                prefs.edit().putFloat("ball_opacity", v).apply()
+            }
+
+            override fun onStartTrackingTouch(bar: SeekBar?) {}
+
+            override fun onStopTrackingTouch(bar: SeekBar?) {
+                sendAction(OverlayService.ACTION_REFRESH)
+            }
+        })
     }
 
     override fun onResume() {
@@ -67,25 +64,20 @@ class MainActivity : Activity() {
         refresh()
     }
 
+    private fun updateOpacityLabel(v: Float) {
+        opacityLabel.text = getString(R.string.opacity_label) + " " + (v * 100).roundToInt() + "%"
+    }
+
     private fun refresh() {
         val hasPerm = Settings.canDrawOverlays(this)
         val running = OverlayService.running
-        val editing = OverlayService.editing
 
         btnGrant.visibility = if (hasPerm) View.GONE else View.VISIBLE
         btnStart.visibility = if (running) View.GONE else View.VISIBLE
         btnStop.visibility = if (running) View.VISIBLE else View.GONE
-        btnEdit.visibility = if (running && !editing) View.VISIBLE else View.GONE
-        btnDone.visibility = if (running && editing) View.VISIBLE else View.GONE
-
-        val a11y = TapForwardService.isReady()
-        a11yStatus.text = getString(if (a11y) R.string.a11y_on else R.string.a11y_off)
-        btnA11y.visibility = if (a11y) View.GONE else View.VISIBLE
-        chkForward.isEnabled = a11y
 
         status.text = when {
             !hasPerm -> getString(R.string.need_overlay)
-            editing -> getString(R.string.status_edit)
             running -> getString(R.string.status_on)
             else -> getString(R.string.status_off)
         }
@@ -103,21 +95,21 @@ class MainActivity : Activity() {
             try {
                 startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION))
             } catch (e2: Exception) {
-                Log.e("MainActivity", "cannot open overlay settings", e2)
+                Log.e("MainActivity", "open overlay settings failed", e2)
             }
         }
     }
 
-    private fun startOverlay() {
+    private fun startBall() {
         if (!Settings.canDrawOverlays(this)) {
             openOverlaySettings()
             return
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
-            PackageManager.PERMISSION_GRANTED
+            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) !=
+            android.content.pm.PackageManager.PERMISSION_GRANTED
         ) {
-            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
+            requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 1)
         }
 
         val i = Intent(this, OverlayService::class.java).setAction(OverlayService.ACTION_START)
@@ -128,17 +120,13 @@ class MainActivity : Activity() {
                 startService(i)
             }
         } catch (e: Exception) {
-            Log.e("MainActivity", "start service failed", e)
-            android.widget.Toast.makeText(
-                this,
-                "启动失败：" + (e.message ?: e.javaClass.simpleName),
-                android.widget.Toast.LENGTH_LONG
-            ).show()
+            Log.e("MainActivity", "start failed", e)
+            Toast.makeText(this, "启动失败：" + (e.message ?: e.javaClass.simpleName), Toast.LENGTH_LONG).show()
         }
         btnStart.postDelayed({ refresh() }, 400)
     }
 
-    private fun stopOverlay() {
+    private fun stopBall() {
         try {
             stopService(Intent(this, OverlayService::class.java))
         } catch (e: Exception) {
@@ -152,6 +140,5 @@ class MainActivity : Activity() {
         } catch (e: Exception) {
             Log.e("MainActivity", "send action failed", e)
         }
-        btnEdit.postDelayed({ refresh() }, 200)
     }
 }
