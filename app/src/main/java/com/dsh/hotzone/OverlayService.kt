@@ -53,6 +53,10 @@ class OverlayService : Service() {
         @Volatile
         var editing = false
             private set
+
+        /** 点击是否同时转发给下层。MainActivity 里改了这边立即生效 */
+        @Volatile
+        var forwardEnabled = true
     }
 
     private lateinit var wm: WindowManager
@@ -102,7 +106,9 @@ class OverlayService : Service() {
         }
 
         running = true
-        log("service created, zones=" + zones.size)
+        forwardEnabled = getSharedPreferences("hotzone_prefs", MODE_PRIVATE)
+            .getBoolean("forward_tap", true)
+        log("service created, zones=" + zones.size + " forward=" + forwardEnabled + " a11y=" + TapForwardService.isReady())
         zones.forEach { player?.preload(it.sound) }
         rebuild()
         log("rebuild done, editing=" + editing)
@@ -502,10 +508,59 @@ class OverlayService : Service() {
         val hold = holds.remove(v) ?: return
         hold.ticker?.let { main.removeCallbacks(it) }
         hold.watchdog?.let { main.removeCallbacks(it) }
+        val wasBursting = hold.bursting
         if (hold.bursting) {
             hold.streams.forEach { player?.stop(it) }
         }
         hold.streams.clear()
+
+        // 只有"点一下"才转发；长按连发不转发（否则会疯狂点击下面的应用）
+        if (!wasBursting) {
+            forwardTap(v)
+        }
+    }
+
+    /**
+     * 把这次点击转发给下面的应用。
+     * 做法：先把自己变成穿透（否则注入的点击会被自己接住），
+     * 等一帧再注入，注入结束后恢复。
+     */
+    private fun forwardTap(v: ZoneView) {
+        if (!forwardEnabled || !TapForwardService.isReady()) return
+        val lp = v.layoutParams as? WindowManager.LayoutParams ?: return
+        val oldFlags = lp.flags
+
+        // 无论如何都要恢复，否则热区会永久卡在"穿透"，再也点不动
+        var restored = false
+        val restore = Runnable {
+            if (restored) return@Runnable
+            restored = true
+            lp.flags = oldFlags
+            try {
+                wm.updateViewLayout(v, lp)
+            } catch (e: Exception) {
+            }
+        }
+
+        lp.flags = oldFlags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+        try {
+            wm.updateViewLayout(v, lp)
+        } catch (e: Exception) {
+            restore.run()
+            return
+        }
+
+        // 1 秒硬兜底：注入失败 / 回调不来，也不至于把热区废掉
+        main.postDelayed(restore, 1000L)
+
+        main.postDelayed({
+            val ok = TapForwardService.tapAt(v.lastRawX, v.lastRawY) {
+                main.post(restore)
+            }
+            if (!ok) {
+                main.post(restore)
+            }
+        }, 24L)
     }
 
     // ---------------- 通知 ----------------
