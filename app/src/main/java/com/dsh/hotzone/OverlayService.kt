@@ -67,6 +67,8 @@ class OverlayService : Service() {
     private var toolbar: View? = null
     private var selectedZone: Zone? = null
     private var toolbarLabel: android.widget.TextView? = null
+    /** 转发进行中：期间忽略新点击，禁止并发注入 */
+    private var forwarding = false
     private var selectedView: ZoneView? = null
     private val startAt = System.currentTimeMillis()
     private val main = Handler(Looper.getMainLooper())
@@ -457,6 +459,8 @@ class OverlayService : Service() {
     // ---------------- 播放 ----------------
 
     private fun playDown(v: ZoneView) {
+        if (forwarding) return   // 注入期间收到的事件直接吞掉，避免自激循环
+
         // 关键修复：如果这个热区还残留着上一次的 hold（UP 没送到），先彻底清掉
         // 否则那个 140ms 的连发定时器会一直跑，几秒钟就把 SoundPool 声道占满
         holds.remove(v)?.let { old ->
@@ -522,45 +526,54 @@ class OverlayService : Service() {
 
     /**
      * 把这次点击转发给下面的应用。
-     * 做法：先把自己变成穿透（否则注入的点击会被自己接住），
-     * 等一帧再注入，注入结束后恢复。
+     *
+     * 步骤：把自己临时设成穿透 → 等约 3 帧 → 注入一次点击 → 立即恢复。
+     * 两个必须的保险：
+     *   1) forwarding 锁，防止注入的点击又被自己接住形成死循环
+     *   2) 800ms 硬兜底，无论注入成功与否都恢复，绝不把热区永久卡成穿透
      */
     private fun forwardTap(v: ZoneView) {
         if (!forwardEnabled || !TapForwardService.isReady()) return
-        val lp = v.layoutParams as? WindowManager.LayoutParams ?: return
-        val oldFlags = lp.flags
+        if (forwarding) return
+        forwarding = true
 
-        // 无论如何都要恢复，否则热区会永久卡在"穿透"，再也点不动
-        var restored = false
-        val restore = Runnable {
-            if (restored) return@Runnable
-            restored = true
-            lp.flags = oldFlags
+        var done = false
+        val finish = Runnable {
+            if (done) return@Runnable
+            done = true
+            forwarding = false
+            // 用 makeLp 重建一份干净的参数来恢复，不依赖任何旧对象
             try {
-                wm.updateViewLayout(v, lp)
+                wm.updateViewLayout(v, makeLp(v.zone))
+                log("forward restored")
             } catch (e: Exception) {
+                log("forward restore failed: " + e.message)
             }
         }
 
-        lp.flags = oldFlags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
         try {
+            val lp = makeLp(v.zone)
+            lp.flags = lp.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
             wm.updateViewLayout(v, lp)
         } catch (e: Exception) {
-            restore.run()
+            log("forward set-through failed: " + e.message)
+            finish.run()
             return
         }
 
-        // 1 秒硬兜底：注入失败 / 回调不来，也不至于把热区废掉
-        main.postDelayed(restore, 1000L)
+        main.postDelayed(finish, 800L)
 
         main.postDelayed({
             val ok = TapForwardService.tapAt(v.lastRawX, v.lastRawY) {
-                main.post(restore)
+                main.post(finish)
             }
-            if (!ok) {
-                main.post(restore)
+            if (ok) {
+                log("forward injected " + v.lastRawX.toInt() + "," + v.lastRawY.toInt())
+            } else {
+                log("forward inject rejected")
+                main.post(finish)
             }
-        }, 24L)
+        }, 60L)
     }
 
     // ---------------- 通知 ----------------
