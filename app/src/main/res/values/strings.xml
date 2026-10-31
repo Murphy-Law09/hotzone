@@ -2,25 +2,16 @@
 <resources>
     <string name="app_name">热区响</string>
     <string name="title">热区响</string>
-    <string name="subtitle">屏幕上的隐形热区，点一下就出声</string>
-    <string name="need_overlay">需要「显示在其他应用上层」权限才能显示热区</string>
+    <string name="subtitle">屏幕角落一个小球，点一下就出声</string>
+    <string name="need_overlay">需要「显示在其他应用上层」权限才能显示小球</string>
     <string name="btn_grant_overlay">授予悬浮窗权限</string>
-    <string name="btn_start">启动热区</string>
+    <string name="btn_start">启动小球</string>
     <string name="btn_stop">停止</string>
-    <string name="btn_edit">编辑布局</string>
-    <string name="btn_done">完成编辑</string>
     <string name="status_off">未运行</string>
-    <string name="status_on">运行中</string>
-    <string name="status_edit">编辑中：点空白处新增热区，拖动可移动</string>
+    <string name="status_on">运行中 · 拖动小球可移动，单击发声</string>
     <string name="noti_title">热区响 运行中</string>
-    <string name="noti_text">点热区出声</string>
-    <string name="noti_edit">编辑布局</string>
-    <string name="noti_done">完成编辑</string>
+    <string name="noti_text">点小球发声</string>
     <string name="noti_stop">停止</string>
-    <string name="a11y_desc">热区响需要这个权限，才能把点击同时转发给热区下面的按钮。不开启也能用，只是热区会挡住下面的应用。</string>
-    <string name="btn_a11y">开启无障碍转发</string>
-    <string name="chk_forward">点击时同时作用于下层</string>
-    <string name="a11y_off">无障碍未开启：热区会挡住下面的按钮</string>
-    <string name="a11y_on">无障碍已开启：点击会同时作用于下层</string>
-    <string name="tip">提示：悬浮窗透明度可在编辑模式下调低至几乎看不见，但仍然能点到。\n\n部分手机（小米/华为/OPPO 等）需要在系统设置里把本应用加入电池优化白名单，否则会被杀后台。</string>
+    <string name="opacity_label">小球透明度</string>
+    <string name="tip">用法：\n\n· 单击小球 → 播放音效\n· 拖动小球 → 移动到任意位置\n· 连点小球 → 音调逐次升高\n\n小球不覆盖任何区域，所以不会挡到游戏按钮或其他应用的操作。\n\n部分手机（小米、华为、OPPO 等）需要在系统设置里把本应用加入电池优化白名单，否则会被杀后台。</string>
 </resources>
