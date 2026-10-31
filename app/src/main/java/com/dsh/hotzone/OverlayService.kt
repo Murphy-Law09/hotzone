@@ -316,10 +316,10 @@ class OverlayService : Service() {
 
     private fun selectZone(v: ZoneView) {
         if (selectedView === v) return
-        selectedView?.selected = false
+        selectedView?.highlighted = false
         selectedView = v
         selectedZone = v.zone
-        v.selected = true
+        v.highlighted = true
         updateLabel()
     }
 
