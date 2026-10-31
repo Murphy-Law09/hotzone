@@ -59,6 +59,8 @@ class OverlayService : Service() {
     private lateinit var zones: MutableList<Zone>
     private val views = ArrayList<ZoneView>()
     private var editLayer: View? = null
+    private var toolbar: View? = null
+    private val startAt = System.currentTimeMillis()
     private val main = Handler(Looper.getMainLooper())
     private val pitch = PitchTracker()
     private val holds = HashMap<ZoneView, Hold>()
@@ -85,11 +87,20 @@ class OverlayService : Service() {
         zones = ZoneStore.load(this)
 
         createChannel()
-        startAsForeground(buildNotification())
+        try {
+            startAsForeground(buildNotification())
+            log("foreground ok")
+        } catch (e: Exception) {
+            log("START_FOREGROUND FAILED: " + e.javaClass.simpleName + " " + e.message)
+            Log.e(TAG, "startForeground failed", e)
+            throw e
+        }
 
         running = true
+        log("service created, zones=" + zones.size)
         zones.forEach { player?.preload(it.sound) }
         rebuild()
+        log("rebuild done, editing=" + editing)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -107,6 +118,7 @@ class OverlayService : Service() {
     }
 
     override fun onDestroy() {
+        log("service destroyed")
         holds.keys.toList().forEach { playUp(it) }
         holds.clear()
         removeAllViews()
@@ -124,8 +136,13 @@ class OverlayService : Service() {
 
     private fun rebuild() {
         removeAllViews()
-        if (editing) addEditLayer()
-        zones.forEach { addZoneView(it) }
+        if (editing) {
+            addEditLayer()
+            zones.forEach { addZoneView(it) }
+            addEditToolbar()     // 最后加 → 在最上层，保证永远能点到
+        } else {
+            zones.forEach { addZoneView(it) }
+        }
     }
 
     private fun addZoneView(zone: Zone) {
@@ -192,6 +209,73 @@ class OverlayService : Service() {
         }
     }
 
+    /** 编辑模式下始终浮在最上层的工具栏 —— 这是唯一的退出通道 */
+    private fun addEditToolbar() {
+        val d = resources.displayMetrics.density
+        val bar = android.widget.LinearLayout(this)
+        bar.orientation = android.widget.LinearLayout.HORIZONTAL
+        bar.gravity = android.view.Gravity.CENTER_VERTICAL
+        bar.setBackgroundColor(0xF01F6FEB.toInt())
+        val pad = (10 * d).toInt()
+        bar.setPadding(pad, pad, pad, pad)
+
+        val label = android.widget.TextView(this)
+        label.text = "编辑模式 · 拖圆圈 · 点空白处新增"
+        label.setTextColor(0xFFFFFFFF.toInt())
+        label.textSize = 12f
+        bar.addView(
+            label,
+            android.widget.LinearLayout.LayoutParams(
+                0,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f
+            )
+        )
+
+        val done = android.widget.Button(this)
+        done.text = "完成"
+        done.isAllCaps = false
+        done.setOnClickListener { setEditing(false) }
+        bar.addView(done)
+
+        val stop = android.widget.Button(this)
+        stop.text = "停止"
+        stop.isAllCaps = false
+        stop.setOnClickListener { stopSelf() }
+        bar.addView(stop)
+
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+            PixelFormat.TRANSLUCENT
+        )
+        params.gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+        params.y = (36 * d).toInt()
+
+        try {
+            wm.addView(bar, params)
+            toolbar = bar
+            log("toolbar added")
+        } catch (e: Exception) {
+            Log.e(TAG, "add toolbar failed", e)
+            log("add toolbar failed: " + e.message)
+        }
+    }
+
+    /** 把关键事件写进 App 私有目录，出问题时可以用文件管理器取出来 */
+    private fun log(msg: String) {
+        try {
+            val dir = getExternalFilesDir(null) ?: filesDir
+            java.io.File(dir, "debug.log").appendText(
+                "[" + java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date()) + "] " + msg + "\n"
+            )
+        } catch (e: Exception) {
+        }
+    }
+
     private fun removeAllViews() {
         views.forEach { v ->
             try {
@@ -207,6 +291,13 @@ class OverlayService : Service() {
             }
         }
         editLayer = null
+        toolbar?.let {
+            try {
+                wm.removeView(it)
+            } catch (e: Exception) {
+            }
+        }
+        toolbar = null
     }
 
     // ---------------- 编辑模式 ----------------
