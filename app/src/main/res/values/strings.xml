@@ -17,5 +17,10 @@
     <string name="noti_edit">编辑布局</string>
     <string name="noti_done">完成编辑</string>
     <string name="noti_stop">停止</string>
+    <string name="a11y_desc">热区响需要这个权限，才能把点击同时转发给热区下面的按钮。不开启也能用，只是热区会挡住下面的应用。</string>
+    <string name="btn_a11y">开启无障碍转发</string>
+    <string name="chk_forward">点击时同时作用于下层</string>
+    <string name="a11y_off">无障碍未开启：热区会挡住下面的按钮</string>
+    <string name="a11y_on">无障碍已开启：点击会同时作用于下层</string>
     <string name="tip">提示：悬浮窗透明度可在编辑模式下调低至几乎看不见，但仍然能点到。\n\n部分手机（小米/华为/OPPO 等）需要在系统设置里把本应用加入电池优化白名单，否则会被杀后台。</string>
 </resources>
