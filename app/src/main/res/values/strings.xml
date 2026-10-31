@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">热区响</string>
+    <string name="title">热区响</string>
+    <string name="subtitle">屏幕上的隐形热区，点一下就出声</string>
+    <string name="need_overlay">需要「显示在其他应用上层」权限才能显示热区</string>
+    <string name="btn_grant_overlay">授予悬浮窗权限</string>
+    <string name="btn_start">启动热区</string>
+    <string name="btn_stop">停止</string>
+    <string name="btn_edit">编辑布局</string>
+    <string name="btn_done">完成编辑</string>
+    <string name="status_off">未运行</string>
+    <string name="status_on">运行中</string>
+    <string name="status_edit">编辑中：点空白处新增热区，拖动可移动</string>
+    <string name="noti_title">热区响 运行中</string>
+    <string name="noti_text">点热区出声</string>
+    <string name="noti_edit">编辑布局</string>
+    <string name="noti_done">完成编辑</string>
+    <string name="noti_stop">停止</string>
+    <string name="tip">提示：悬浮窗透明度可在编辑模式下调低至几乎看不见，但仍然能点到。\n\n部分手机（小米/华为/OPPO 等）需要在系统设置里把本应用加入电池优化白名单，否则会被杀后台。</string>
+</resources>
