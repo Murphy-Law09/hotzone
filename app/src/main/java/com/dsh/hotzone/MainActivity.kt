@@ -21,6 +21,9 @@ class MainActivity : Activity() {
     private lateinit var btnEdit: Button
     private lateinit var btnDone: Button
     private lateinit var btnStop: Button
+    private lateinit var btnA11y: Button
+    private lateinit var a11yStatus: TextView
+    private lateinit var chkForward: android.widget.CheckBox
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,6 +35,25 @@ class MainActivity : Activity() {
         btnEdit = findViewById(R.id.btnEdit)
         btnDone = findViewById(R.id.btnDone)
         btnStop = findViewById(R.id.btnStop)
+        btnA11y = findViewById(R.id.btnA11y)
+        a11yStatus = findViewById(R.id.a11yStatus)
+        chkForward = findViewById(R.id.chkForward)
+
+        val savedForward = getSharedPreferences("hotzone_prefs", MODE_PRIVATE)
+            .getBoolean("forward_tap", true)
+        chkForward.isChecked = savedForward
+        OverlayService.forwardEnabled = savedForward
+        chkForward.setOnCheckedChangeListener { _, checked ->
+            getSharedPreferences("hotzone_prefs", MODE_PRIVATE)
+                .edit().putBoolean("forward_tap", checked).apply()
+            OverlayService.forwardEnabled = checked
+        }
+        btnA11y.setOnClickListener {
+            try {
+                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            } catch (e: Exception) {
+            }
+        }
 
         btnGrant.setOnClickListener { openOverlaySettings() }
         btnStart.setOnClickListener { startOverlay() }
@@ -55,6 +77,11 @@ class MainActivity : Activity() {
         btnStop.visibility = if (running) View.VISIBLE else View.GONE
         btnEdit.visibility = if (running && !editing) View.VISIBLE else View.GONE
         btnDone.visibility = if (running && editing) View.VISIBLE else View.GONE
+
+        val a11y = TapForwardService.isReady()
+        a11yStatus.text = getString(if (a11y) R.string.a11y_on else R.string.a11y_off)
+        btnA11y.visibility = if (a11y) View.GONE else View.VISIBLE
+        chkForward.isEnabled = a11y
 
         status.text = when {
             !hasPerm -> getString(R.string.need_overlay)
