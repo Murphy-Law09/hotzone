@@ -50,47 +50,6 @@
             android:text="@string/btn_start" />
 
         <Button
-            android:id="@+id/btnEdit"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:text="@string/btn_edit" />
-
-        <Button
-            android:id="@+id/btnDone"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:text="@string/btn_done"
-            android:visibility="gone" />
-
-        <Button
-            android:id="@+id/btnA11y"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
-            android:text="@string/btn_a11y" />
-
-        <TextView
-            android:id="@+id/a11yStatus"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:text="@string/a11y_off"
-            android:textColor="#8B949E"
-            android:textSize="12sp" />
-
-        <CheckBox
-            android:id="@+id/chkForward"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:checked="true"
-            android:text="@string/chk_forward"
-            android:textColor="#C9D1D9"
-            android:textSize="14sp" />
-
-        <Button
             android:id="@+id/btnStop"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -98,9 +57,25 @@
             android:text="@string/btn_stop" />
 
         <TextView
+            android:id="@+id/opacityLabel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="32dp"
+            android:layout_marginTop="30dp"
+            android:text="@string/opacity_label"
+            android:textColor="#C9D1D9"
+            android:textSize="14sp" />
+
+        <SeekBar
+            android:id="@+id/opacityBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:max="100" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="30dp"
             android:text="@string/tip"
             android:textColor="#6E7681"
             android:textSize="13sp" />
