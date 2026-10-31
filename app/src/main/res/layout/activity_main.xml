@@ -65,6 +65,32 @@
             android:visibility="gone" />
 
         <Button
+            android:id="@+id/btnA11y"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="@string/btn_a11y" />
+
+        <TextView
+            android:id="@+id/a11yStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/a11y_off"
+            android:textColor="#8B949E"
+            android:textSize="12sp" />
+
+        <CheckBox
+            android:id="@+id/chkForward"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:checked="true"
+            android:text="@string/chk_forward"
+            android:textColor="#C9D1D9"
+            android:textSize="14sp" />
+
+        <Button
             android:id="@+id/btnStop"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
