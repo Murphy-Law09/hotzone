@@ -44,6 +44,7 @@ class OverlayService : Service() {
         private const val BURST_VOLUME = 0.5f
         private const val HOLD_MAX_RATE = 2.0f
         private const val HOLD_TC_SEC = 1.1f
+        private const val HOLD_WATCHDOG_MS = 8000L   // 按住超时兜底，防止定时器泄漏
 
         @Volatile
         var running = false
@@ -60,6 +61,9 @@ class OverlayService : Service() {
     private val views = ArrayList<ZoneView>()
     private var editLayer: View? = null
     private var toolbar: View? = null
+    private var selectedZone: Zone? = null
+    private var toolbarLabel: android.widget.TextView? = null
+    private var selectedView: ZoneView? = null
     private val startAt = System.currentTimeMillis()
     private val main = Handler(Looper.getMainLooper())
     private val pitch = PitchTracker()
@@ -74,6 +78,7 @@ class OverlayService : Service() {
         var startRate = 1f
         var startAt = 0L
         var ticker: Runnable? = null
+        var watchdog: Runnable? = null
         var bursting = false
         val streams = ArrayList<Int>()
     }
@@ -136,10 +141,15 @@ class OverlayService : Service() {
 
     private fun rebuild() {
         removeAllViews()
+        selectedView = null
         if (editing) {
             addEditLayer()
             zones.forEach { addZoneView(it) }
             addEditToolbar()     // 最后加 → 在最上层，保证永远能点到
+            val keep = selectedZone
+            if (keep != null) {
+                views.find { it.zone === keep }?.let { selectZone(it) }
+            }
         } else {
             zones.forEach { addZoneView(it) }
         }
@@ -148,7 +158,14 @@ class OverlayService : Service() {
     private fun addZoneView(zone: Zone) {
         val v = ZoneView(this, zone)
         v.editing = editing
-        v.onDown = { zv, e -> if (editing) dragDown(zv, e) else playDown(zv) }
+        v.onDown = { zv, e ->
+            if (editing) {
+                selectZone(zv)
+                dragDown(zv, e)
+            } else {
+                playDown(zv)
+            }
+        }
         v.onMove = { zv, e -> if (editing) dragMove(zv, e) }
         v.onUp = { zv -> if (editing) dragUp(zv) else playUp(zv) }
 
@@ -209,40 +226,60 @@ class OverlayService : Service() {
         }
     }
 
-    /** 编辑模式下始终浮在最上层的工具栏 —— 这是唯一的退出通道 */
+    /** 编辑模式工具栏：浮在最上层，既是退出通道，也是调节面板 */
     private fun addEditToolbar() {
         val d = resources.displayMetrics.density
-        val bar = android.widget.LinearLayout(this)
-        bar.orientation = android.widget.LinearLayout.HORIZONTAL
-        bar.gravity = android.view.Gravity.CENTER_VERTICAL
-        bar.setBackgroundColor(0xF01F6FEB.toInt())
+        val col = android.widget.LinearLayout(this)
+        col.orientation = android.widget.LinearLayout.VERTICAL
+        col.setBackgroundColor(0xF00F1622.toInt())
         val pad = (10 * d).toInt()
-        bar.setPadding(pad, pad, pad, pad)
+        col.setPadding(pad, pad, pad, pad)
 
         val label = android.widget.TextView(this)
-        label.text = "编辑模式 · 拖圆圈 · 点空白处新增"
-        label.setTextColor(0xFFFFFFFF.toInt())
-        label.textSize = 12f
-        bar.addView(
-            label,
-            android.widget.LinearLayout.LayoutParams(
-                0,
+        label.setTextColor(0xFFB9C6D6.toInt())
+        label.textSize = 11f
+        col.addView(label, android.widget.LinearLayout.LayoutParams(
+            android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+        ))
+
+        val row = android.widget.LinearLayout(this)
+        row.orientation = android.widget.LinearLayout.HORIZONTAL
+        row.gravity = android.view.Gravity.CENTER_VERTICAL
+        col.addView(row, android.widget.LinearLayout.LayoutParams(
+            android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+        ))
+
+        fun btn(text: String, action: () -> Unit) {
+            val b = android.widget.Button(this)
+            b.text = text
+            b.isAllCaps = false
+            b.textSize = 12f
+            b.minWidth = 0
+            b.minimumWidth = 0
+            b.setPadding(0, 0, 0, 0)
+            b.setOnClickListener { action() }
+            val lp = android.widget.LinearLayout.LayoutParams(
                 android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
-                1f
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
             )
-        )
+            lp.marginEnd = (6 * d).toInt()
+            row.addView(b, lp)
+        }
 
-        val done = android.widget.Button(this)
-        done.text = "完成"
-        done.isAllCaps = false
-        done.setOnClickListener { setEditing(false) }
-        bar.addView(done)
+        btn("小") { resizeSelected(-0.02f) }
+        btn("大") { resizeSelected(0.02f) }
+        btn("淡") { fadeSelected(-0.02f) }
+        btn("浓") { fadeSelected(0.02f) }
+        btn("删") { deleteSelected() }
 
-        val stop = android.widget.Button(this)
-        stop.text = "停止"
-        stop.isAllCaps = false
-        stop.setOnClickListener { stopSelf() }
-        bar.addView(stop)
+        val spacer = View(this)
+        row.addView(spacer, android.widget.LinearLayout.LayoutParams(
+            0, 1, 1f
+        ))
+
+        btn("完成") { setEditing(false) }
 
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
@@ -256,13 +293,72 @@ class OverlayService : Service() {
         params.y = (36 * d).toInt()
 
         try {
-            wm.addView(bar, params)
-            toolbar = bar
+            wm.addView(col, params)
+            toolbar = col
             log("toolbar added")
         } catch (e: Exception) {
             Log.e(TAG, "add toolbar failed", e)
             log("add toolbar failed: " + e.message)
         }
+
+        toolbarLabel = label
+        updateLabel()
+    }
+
+    private fun updateLabel() {
+        val z = selectedZone
+        toolbarLabel?.text = if (z == null) {
+            "编辑模式 · 拖圆圈移动 · 点空白处新增"
+        } else {
+            "已选中 · 大小 " + (z.w * 100).toInt() + "% · 透明度 " + (z.opacity * 100).toInt() + "%"
+        }
+    }
+
+    private fun selectZone(v: ZoneView) {
+        if (selectedView === v) return
+        selectedView?.selected = false
+        selectedView = v
+        selectedZone = v.zone
+        v.selected = true
+        updateLabel()
+    }
+
+    private fun resizeSelected(delta: Float) {
+        val v = selectedView ?: return
+        val zone = v.zone
+        zone.w = (zone.w + delta).coerceIn(0.05f, 1.0f)
+        zone.h = (zone.h + delta).coerceIn(0.05f, 1.0f)
+        try {
+            wm.updateViewLayout(v, makeLp(zone))
+        } catch (e: Exception) {
+        }
+        v.invalidate()
+        ZoneStore.save(this, zones)
+        updateLabel()
+    }
+
+    private fun fadeSelected(delta: Float) {
+        val v = selectedView ?: return
+        val zone = v.zone
+        zone.opacity = (zone.opacity + delta).coerceIn(0f, 1f)
+        v.invalidate()
+        ZoneStore.save(this, zones)
+        updateLabel()
+    }
+
+    private fun deleteSelected() {
+        val v = selectedView ?: return
+        val zone = v.zone
+        views.remove(v)
+        try {
+            wm.removeView(v)
+        } catch (e: Exception) {
+        }
+        zones.remove(zone)
+        selectedView = null
+        selectedZone = null
+        ZoneStore.save(this, zones)
+        updateLabel()
     }
 
     /** 把关键事件写进 App 私有目录，出问题时可以用文件管理器取出来 */
@@ -298,6 +394,7 @@ class OverlayService : Service() {
             }
         }
         toolbar = null
+        toolbarLabel = null
     }
 
     // ---------------- 编辑模式 ----------------
@@ -354,6 +451,15 @@ class OverlayService : Service() {
     // ---------------- 播放 ----------------
 
     private fun playDown(v: ZoneView) {
+        // 关键修复：如果这个热区还残留着上一次的 hold（UP 没送到），先彻底清掉
+        // 否则那个 140ms 的连发定时器会一直跑，几秒钟就把 SoundPool 声道占满
+        holds.remove(v)?.let { old ->
+            old.ticker?.let { main.removeCallbacks(it) }
+            old.watchdog?.let { main.removeCallbacks(it) }
+            old.streams.forEach { player?.stop(it) }
+            old.streams.clear()
+        }
+
         val zone = v.zone
         val now = SystemClock.uptimeMillis()
         val rate = pitch.next(now)
@@ -377,6 +483,17 @@ class OverlayService : Service() {
             }
         }
         hold.ticker = ticker
+
+        // 8 秒兜底：万一 UP 事件丢了，强制把这次按住结束掉，绝不无限连发
+        val dog = Runnable {
+            if (holds[v] === hold) {
+                log("watchdog stopped stuck hold")
+                playUp(v)
+            }
+        }
+        hold.watchdog = dog
+        main.postDelayed(dog, HOLD_WATCHDOG_MS)
+
         holds[v] = hold
         main.postDelayed(ticker, HOLD_DELAY_MS)
     }
@@ -384,6 +501,7 @@ class OverlayService : Service() {
     private fun playUp(v: ZoneView) {
         val hold = holds.remove(v) ?: return
         hold.ticker?.let { main.removeCallbacks(it) }
+        hold.watchdog?.let { main.removeCallbacks(it) }
         if (hold.bursting) {
             hold.streams.forEach { player?.stop(it) }
         }
