@@ -27,6 +27,10 @@ class ZoneView(context: Context, val zone: Zone) : View(context) {
             invalidate()
         }
 
+    /** 最近一次按下的屏幕坐标，转发点击时要用 */
+    var lastRawX = 0f
+    var lastRawY = 0f
+
     var onDown: ((ZoneView, MotionEvent) -> Unit)? = null
     var onMove: ((ZoneView, MotionEvent) -> Unit)? = null
     var onUp: ((ZoneView) -> Unit)? = null
@@ -70,7 +74,11 @@ class ZoneView(context: Context, val zone: Zone) : View(context) {
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.actionMasked) {
-            MotionEvent.ACTION_DOWN -> onDown?.invoke(this, event)
+            MotionEvent.ACTION_DOWN -> {
+                lastRawX = event.rawX
+                lastRawY = event.rawY
+                onDown?.invoke(this, event)
+            }
             MotionEvent.ACTION_MOVE -> onMove?.invoke(this, event)
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> onUp?.invoke(this)
         }
