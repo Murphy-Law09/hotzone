@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>热区响 · 部署指南</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 22px 18px 60px; background: #0b0e14; color: #d8e0ea;
+    font: 15px/1.75 -apple-system, "PingFang SC", "Noto Sans CJK SC", system-ui, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  h1 { font-size: 22px; color: #fff; margin: 0 0 6px; }
+  h2 {
+    font-size: 17px; color: #58a6ff; margin: 34px 0 10px;
+    padding-bottom: 6px; border-bottom: 1px solid #21262d;
+  }
+  h3 { font-size: 15px; color: #e6edf3; margin: 20px 0 8px; }
+  p, li { margin: 8px 0; }
+  ul, ol { padding-left: 22px; }
+  code {
+    background: #161b22; border: 1px solid #30363d; border-radius: 5px;
+    padding: 1px 6px; font-size: 13px; color: #79c0ff;
+    font-family: ui-monospace, Menlo, monospace; word-break: break-all;
+  }
+  pre {
+    background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+    padding: 12px 14px; overflow-x: auto; font-size: 13px;
+  }
+  pre code { background: none; border: 0; padding: 0; }
+  .box {
+    background: #161b22; border: 1px solid #30363d; border-radius: 10px;
+    padding: 14px 16px; margin: 14px 0;
+  }
+  .warn { border-color: #9e6a03; background: #2d1f00; }
+  .ok { border-color: #238636; background: #0d2818; }
+  .key {
+    display: inline-block; background: #1f6feb; color: #fff; font-weight: 700;
+    border-radius: 50%; width: 24px; height: 24px; text-align: center;
+    line-height: 24px; font-size: 13px; margin-right: 6px;
+  }
+  a { color: #58a6ff; }
+  .muted { color: #6e7681; font-size: 13px; }
+  strong { color: #fff; }
+</style>
+</head>
+<body>
+
+<h1>热区响 · 部署指南</h1>
+<p class="muted">全程手机操作，不需要电脑</p>
+
+<div class="box ok">
+  <strong>一句话流程：</strong>注册 GitHub → 生成一个 token → 交给我 → 剩下的我全自动做完，APK 直接落到你手机上。
+</div>
+
+<h2><span class="key">1</span>注册 GitHub</h2>
+<ol>
+  <li>浏览器打开 <a href="https://github.com/signup">github.com/signup</a></li>
+  <li>填邮箱、密码、用户名（字母数字，比如 <code>zhangsan2026</code>）</li>
+  <li>完成邮箱验证</li>
+</ol>
+<p class="muted">已经有账号就跳到下一步。</p>
+
+<h2><span class="key">2</span>生成 token</h2>
+<p>token 是一把临时钥匙，用来把代码推上去。用完就能删。</p>
+<ol>
+  <li>打开 <a href="https://github.com/settings/tokens">github.com/settings/tokens</a></li>
+  <li>点 <strong>Generate new token</strong> → <strong>Generate new token (classic)</strong></li>
+  <li>Note 随便填，比如 <code>hotzone</code></li>
+  <li>Expiration 选 <strong>7 days</strong></li>
+  <li>权限只勾 <strong><code>repo</code></strong> 这一个大类</li>
+  <li>拉到底点 <strong>Generate token</strong></li>
+  <li>复制那串 <code>ghp_</code> 开头的字符 —— <strong>关掉页面就再也看不到了</strong></li>
+</ol>
+
+<div class="box warn">
+  <strong>安全：</strong>token 等于账号写权限。用完后请到
+  <a href="https://github.com/settings/tokens">github.com/settings/tokens</a> 把它删掉。
+  它会留在聊天记录里，删掉最保险。
+</div>
+
+<h2><span class="key">3</span>把 token 发给我</h2>
+<p>我在手机上直接跑脚本：</p>
+<pre><code>建仓库 → 上传全部代码 → 触发云端编译
+→ 盯着编译 → 完成后自动下载 APK → 存到手机里</code></pre>
+<p>大概 3~6 分钟，你什么都不用做。</p>
+
+<h2><span class="key">4</span>装 APK</h2>
+<p>APK 会被我放到：</p>
+<pre><code>/sdcard/dsh/hotzone/dist/app-debug.apk</code></pre>
+<p>用文件管理器找到它，点安装。系统提示「未知来源」时选允许。</p>
+
+<h2><span class="key">5</span>第一次使用</h2>
+<ol>
+  <li>打开「热区响」</li>
+  <li>点 <strong>授予悬浮窗权限</strong> → 打开开关</li>
+  <li>回到应用点 <strong>启动热区</strong>（会弹一个通知，系统强制要求）</li>
+  <li>点 <strong>编辑布局</strong>：
+    <ul>
+      <li>屏幕变暗，出现蓝色描边的圆圈</li>
+      <li><strong>拖动</strong>圆圈移动位置</li>
+      <li><strong>点空白处</strong>新增热区</li>
+      <li>摆好后点 <strong>完成编辑</strong></li>
+    </ul>
+  </li>
+  <li>退出应用，热区还在 —— 切到微信、桌面，点那个位置就响</li>
+</ol>
+
+<h2>常见问题</h2>
+
+<h3>点了没反应 / 看不见热区</h3>
+<p>运行模式下热区只有 <strong>6% 不透明度</strong>，本来就几乎看不见，这是设计如此。进编辑模式能看到描边。</p>
+
+<h3>过一会儿就不响了</h3>
+<p>被系统杀了后台。去 设置 → 电池 → 应用省电策略 → 选「无限制」。或者把「热区响」在最近任务里锁定。</p>
+
+<h3>通知栏一直有通知</h3>
+<p>删不掉。Android 规定前台服务必须有通知，否则不允许常驻。</p>
+
+<h3>想换音效</h3>
+<p>替换 <code>app/src/main/assets/sound.mp3</code>，保持文件名不变，重新推送一次。</p>
+
+<h3>GitHub 打不开</h3>
+<p>换个网络或流量试试。实在不行告诉我，我换成 Gitee 的构建方案（需要改一下 workflow）。</p>
+
+<h2>为什么不直接用 GitHub App</h2>
+<p>App 能做：看仓库、看编译状态、创建仓库。</p>
+<p>App <strong>不能</strong>做：生成 token（必须网页）、下载 Actions 里的产物（必须网页）。</p>
+<p>所以网页至少要用一次 —— 就是生成 token 那一次。<br>
+下载 APK 那一步我已经替你自动化了，不用你去网页下载。</p>
+
+</body>
+</html>
