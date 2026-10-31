@@ -102,8 +102,13 @@ class MainActivity : Activity() {
             }
         } catch (e: Exception) {
             Log.e("MainActivity", "start service failed", e)
+            android.widget.Toast.makeText(
+                this,
+                "启动失败：" + (e.message ?: e.javaClass.simpleName),
+                android.widget.Toast.LENGTH_LONG
+            ).show()
         }
-        btnStart.postDelayed({ refresh() }, 300)
+        btnStart.postDelayed({ refresh() }, 400)
     }
 
     private fun stopOverlay() {
