@@ -20,7 +20,8 @@ class ZoneView(context: Context, val zone: Zone) : View(context) {
             invalidate()
         }
 
-    var selected = false
+    // 注意：不能叫 selected —— View 自带 setSelected()，会产生 JVM 签名冲突
+    var highlighted = false
         set(value) {
             field = value
             invalidate()
@@ -48,9 +49,9 @@ class ZoneView(context: Context, val zone: Zone) : View(context) {
         val alpha = (zone.opacity.coerceIn(0f, 1f) * 255f).toInt()
 
         if (editing) {
-            fill.color = if (selected) Color.argb(90, 255, 200, 0) else Color.argb(60, 88, 166, 255)
-            stroke.color = if (selected) 0xFFFFC000.toInt() else 0xFF58A6FF.toInt()
-            stroke.strokeWidth = (if (selected) 3.5f else 2f) * density
+            fill.color = if (highlighted) Color.argb(90, 255, 200, 0) else Color.argb(60, 88, 166, 255)
+            stroke.color = if (highlighted) 0xFFFFC000.toInt() else 0xFF58A6FF.toInt()
+            stroke.strokeWidth = (if (highlighted) 3.5f else 2f) * density
         } else {
             fill.color = Color.argb(alpha, 255, 255, 255)
         }
