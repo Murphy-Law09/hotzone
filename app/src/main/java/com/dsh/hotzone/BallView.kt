@@ -21,7 +21,8 @@ class BallView(context: Context) : View(context) {
             invalidate()
         }
 
-    var pressed = false
+    // 注意：不能叫 pressed —— View 自带 setPressed()，会签名冲突
+    var heldDown = false
         set(value) {
             field = value
             invalidate()
@@ -51,7 +52,7 @@ class BallView(context: Context) : View(context) {
         if (r <= 0f) return
 
         val alpha = (opacity.coerceIn(0.05f, 1f) * 255f).toInt()
-        val boost = if (pressed) 1.4f else 1f
+        val boost = if (heldDown) 1.4f else 1f
 
         ringPaint.color = Color.argb(
             (alpha * 0.95f * boost).toInt().coerceIn(0, 255), 255, 255, 255
@@ -67,12 +68,12 @@ class BallView(context: Context) : View(context) {
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                pressed = true
+                heldDown = true
                 onDown?.invoke(this, event)
             }
             MotionEvent.ACTION_MOVE -> onMove?.invoke(this, event)
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                pressed = false
+                heldDown = false
                 onUp?.invoke(this, event)
             }
         }
