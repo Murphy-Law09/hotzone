@@ -17,7 +17,7 @@ class MainActivity : Activity() {
         Player.ensure(this)
 
         findViewById<Button>(R.id.btnTest).setOnClickListener {
-            Player.tap()
+            Player.tapOnce(this)
             status.text = getString(R.string.status_played)
         }
     }
