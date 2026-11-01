@@ -7,5 +7,8 @@
     <string name="coord_label">坐标</string>
     <string name="btn_test">测试音效</string>
     <string name="btn_save">保存热区</string>
+    <string name="btn_frame">显示热区 8 秒</string>
+    <string name="btn_frame_hide">隐藏热区框</string>
+    <string name="need_overlay">需要悬浮窗权限（只用于显示边框，不拦截触摸）</string>
     <string name="saved">已保存，立即生效</string>
 </resources>
