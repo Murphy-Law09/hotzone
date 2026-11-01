@@ -15,11 +15,13 @@ object Player {
     private const val HOLD_MAX = 2.0f
     private const val HOLD_TC = 1.1f
     private const val WATCHDOG_MS = 8000L
+    private const val MAX_LAYERS = 3   // 连发同时最多叠 3 层，压低音频负载
 
     private var player: SoundPlayer? = null
     private val pitch = PitchTracker()
     private val main = Handler(Looper.getMainLooper())
 
+    private val layers = ArrayList<Int>()   // 仍在响的 stream id（用于限层）
     private var burst: Runnable? = null
     private var watchdog: Runnable? = null
     private var startRate = 1f
@@ -39,7 +41,8 @@ object Player {
         val rate = pitch.next(now)
         startRate = rate
         startAt = now
-        player?.play(SOUND, rate, 1f)
+        player?.play(SOUND, rate, 1f)?.let { if (it != 0) layers.add(it) }
+        trimLayers()
         startBurst()
     }
 
@@ -57,7 +60,8 @@ object Player {
             override fun run() {
                 val elapsed = SystemClock.uptimeMillis() - startAt
                 val rate = pitch.holdRate(startRate, elapsed, HOLD_MAX, HOLD_TC)
-                player?.play(SOUND, rate, BURST_VOL)
+                player?.play(SOUND, rate, BURST_VOL)?.let { if (it != 0) layers.add(it) }
+                trimLayers()
                 main.postDelayed(this, BURST_MS)
             }
         }
@@ -68,6 +72,13 @@ object Player {
         val w = Runnable { up() }
         watchdog = w
         main.postDelayed(w, WATCHDOG_MS)
+    }
+
+    /** 超过 MAX_LAYERS 就停掉最老的层（可能已自然播完，stop 无害） */
+    private fun trimLayers() {
+        while (layers.size > MAX_LAYERS) {
+            player?.stop(layers.removeAt(0))
+        }
     }
 
     /** 主界面「测试音效」用 */
