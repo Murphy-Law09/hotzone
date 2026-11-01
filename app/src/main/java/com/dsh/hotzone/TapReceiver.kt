@@ -8,6 +8,8 @@ import android.content.Intent
 class TapReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
         val ctx = context ?: return
+        // 顺便确保保活服务在跑，避免下次冷启动
+        KeepAliveService.ensure(ctx)
         when (intent?.action) {
             ACTION_DOWN -> Player.down(ctx)
             ACTION_UP -> Player.up()
