@@ -2,9 +2,10 @@
 <resources>
     <string name="app_name">热区响</string>
     <string name="title">热区响</string>
-    <string name="subtitle">检测型热区 · 不遮挡、不拦截、不影响操作</string>
-    <string name="status_idle">待命</string>
+    <string name="status_hint">拖动红框移动位置，拖四角改大小</string>
     <string name="status_played">已播放一次（说明音效正常）</string>
+    <string name="coord_label">坐标</string>
     <string name="btn_test">测试音效</string>
-    <string name="tip">这个版本不显示任何悬浮窗，热区是完全"虚拟"的。\n\n工作原理：\n通过 shell 读取触摸设备的原始事件流，判断点击位置是否落在热区内。因为是在系统分发事件之前拿到的数据，所以：\n\n· 不遮挡任何界面\n· 不拦截滑动和点击\n· 不影响下面的应用\n\n热区配置在 /sdcard/hotzone/zones.txt，每行一个矩形区域：\n  x1 y1 x2 y2\n\n改完配置不用重启，脚本每次点击都会重新读。</string>
+    <string name="btn_save">保存热区</string>
+    <string name="saved">已保存，立即生效</string>
 </resources>
