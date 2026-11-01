@@ -31,53 +31,23 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="28dp"
-            android:text="@string/status_off"
+            android:text="@string/status_idle"
             android:textColor="#58A6FF"
             android:textSize="15sp" />
 
         <Button
-            android:id="@+id/btnGrant"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:text="@string/btn_grant_overlay" />
-
-        <Button
-            android:id="@+id/btnStart"
+            android:id="@+id/btnTest"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="18dp"
-            android:text="@string/btn_start" />
-
-        <Button
-            android:id="@+id/btnStop"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:text="@string/btn_stop" />
-
-        <TextView
-            android:id="@+id/opacityLabel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="30dp"
-            android:text="@string/opacity_label"
-            android:textColor="#C9D1D9"
-            android:textSize="14sp" />
-
-        <SeekBar
-            android:id="@+id/opacityBar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:max="100" />
+            android:text="@string/btn_test" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="30dp"
             android:text="@string/tip"
-            android:textColor="#6E7681"
+            android:textColor="#8B949E"
             android:textSize="13sp" />
     </LinearLayout>
 </ScrollView>
