@@ -92,74 +92,76 @@ class MainActivity : Activity(), Shizuku.OnRequestPermissionResultListener {
 
     override fun onRequestPermissionResult(requestCode: Int, grantResult: Int) {
         if (requestCode == REQ_SHIZUKU && grantResult == PackageManager.PERMISSION_GRANTED) {
-            Thread {
-                Shell.startDaemon()
-                main.post { refreshShizuku() }
-            }.start()
+            autoStartDaemon()
         } else {
             refreshShizuku()
         }
     }
 
     private fun autoStartDaemon() {
-        Thread {
-            if (!Shell.available()) {
-                main.post { refreshShizuku() }
-                return@Thread
-            }
-            if (!Shell.hasPermission()) {
-                main.post { Shell.requestPermission(REQ_SHIZUKU) }
+        if (!Shell.available()) {
+            refreshShizuku()
+            return
+        }
+        if (!Shell.hasPermission()) {
+            Shell.requestPermission(REQ_SHIZUKU)
+            refreshShizuku()
+            return
+        }
+        Shell.startDaemon(this) { ok ->
+            runOnUiThread {
+                if (!ok) {
+                    Toast.makeText(this, R.string.daemon_start_failed, Toast.LENGTH_LONG).show()
+                }
                 refreshShizuku()
-                return@Thread
             }
-            Shell.startDaemon()
-            main.post { refreshShizuku() }
-        }.start()
+        }
     }
 
     private fun toggleDaemon() {
-        Thread {
-            if (Shell.daemonRunning()) {
-                Shell.stopDaemon()
-            } else {
-                if (!Shell.available()) {
-                    main.post {
-                        Toast.makeText(this, R.string.shizuku_not_running, Toast.LENGTH_LONG).show()
+        if (!Shell.available()) {
+            Toast.makeText(this, R.string.shizuku_not_running, Toast.LENGTH_LONG).show()
+            refreshShizuku()
+            return
+        }
+        if (!Shell.hasPermission()) {
+            Shell.requestPermission(REQ_SHIZUKU)
+            return
+        }
+        Shell.daemonRunning(this) { running ->
+            runOnUiThread {
+                if (running) {
+                    Shell.stopDaemon(this) {
+                        runOnUiThread { refreshShizuku() }
                     }
-                    return@Thread
-                }
-                if (!Shell.hasPermission()) {
-                    main.post { Shell.requestPermission(REQ_SHIZUKU) }
-                    return@Thread
-                }
-                val ok = Shell.startDaemon()
-                if (!ok) {
-                    main.post {
-                        Toast.makeText(this, R.string.daemon_start_failed, Toast.LENGTH_LONG).show()
-                    }
+                } else {
+                    autoStartDaemon()
                 }
             }
-            main.post { refreshShizuku() }
-        }.start()
+        }
     }
 
     private fun refreshShizuku() {
-        Thread {
-            val avail = Shell.available()
-            val perm = Shell.hasPermission()
-            val running = if (perm) Shell.daemonRunning() else false
-            main.post {
-                shizukuStatus.text = when {
-                    !avail -> getString(R.string.shizuku_not_running)
-                    !perm -> getString(R.string.shizuku_no_permission)
-                    running -> getString(R.string.daemon_running)
-                    else -> getString(R.string.daemon_stopped)
-                }
-                btnDaemon.text =
-                    if (running) getString(R.string.btn_daemon_stop)
-                    else getString(R.string.btn_daemon_start)
+        if (!Shell.available()) {
+            shizukuStatus.text = getString(R.string.shizuku_not_running)
+            btnDaemon.text = getString(R.string.btn_daemon_start)
+            return
+        }
+        if (!Shell.hasPermission()) {
+            shizukuStatus.text = getString(R.string.shizuku_no_permission)
+            btnDaemon.text = getString(R.string.btn_daemon_start)
+            return
+        }
+        Shell.daemonRunning(this) { running ->
+            runOnUiThread {
+                shizukuStatus.text = getString(
+                    if (running) R.string.daemon_running else R.string.daemon_stopped
+                )
+                btnDaemon.text = getString(
+                    if (running) R.string.btn_daemon_stop else R.string.btn_daemon_start
+                )
             }
-        }.start()
+        }
     }
 
     // ---------------- 热区配置 ----------------
