@@ -14,34 +14,50 @@
         android:textStyle="bold" />
 
     <TextView
-        android:id="@+id/status"
+        android:id="@+id/shizukuStatus"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="@string/status_hint"
+        android:layout_marginTop="6dp"
+        android:text="@string/checking"
         android:textColor="#8B949E"
         android:textSize="13sp" />
+
+    <Button
+        android:id="@+id/btnDaemon"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/btn_daemon_start" />
 
     <com.dsh.hotzone.ZoneEditorView
         android:id="@+id/editor"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:layout_marginTop="12dp" />
+        android:layout_marginTop="10dp" />
 
     <TextView
         android:id="@+id/coordLabel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="6dp"
         android:text="@string/coord_label"
         android:textColor="#58A6FF"
         android:textSize="13sp" />
 
+    <TextView
+        android:id="@+id/status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:text="@string/status_hint"
+        android:textColor="#6E7681"
+        android:textSize="12sp" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="6dp"
         android:orientation="horizontal">
 
         <Button
@@ -64,6 +80,6 @@
         android:id="@+id/btnFrame"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="6dp"
         android:text="@string/btn_frame" />
 </LinearLayout>
