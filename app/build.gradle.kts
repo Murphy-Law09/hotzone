@@ -41,4 +41,7 @@ android {
 }
 
 dependencies {
+    // Shizuku：让 App 能以 shell 身份执行命令，用来自己拉起检测脚本
+    implementation("dev.rikka.shizuku:api:13.1.5")
+    implementation("dev.rikka.shizuku:provider:13.1.5")
 }
