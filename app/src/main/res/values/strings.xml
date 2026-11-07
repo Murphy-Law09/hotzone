@@ -2,6 +2,14 @@
 <resources>
     <string name="app_name">热区响</string>
     <string name="title">热区响</string>
+    <string name="checking">正在检查 Shizuku…</string>
+    <string name="shizuku_not_running">Shizuku 未运行 —— 请先打开 Shizuku App 并启动它</string>
+    <string name="shizuku_no_permission">需要 Shizuku 授权（点下方按钮请求）</string>
+    <string name="daemon_running">检测脚本运行中 ✓ 点热区会发声</string>
+    <string name="daemon_stopped">检测脚本未运行</string>
+    <string name="btn_daemon_start">启动检测脚本</string>
+    <string name="btn_daemon_stop">停止检测脚本</string>
+    <string name="daemon_start_failed">启动失败，请检查 Shizuku 授权和脚本是否存在</string>
     <string name="status_hint">拖动红框移动位置，拖四角改大小</string>
     <string name="status_played">已播放一次（说明音效正常）</string>
     <string name="coord_label">坐标</string>
