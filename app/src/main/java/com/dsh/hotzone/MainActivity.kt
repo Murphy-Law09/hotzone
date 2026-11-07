@@ -2,11 +2,14 @@ package com.dsh.hotzone
 
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.PixelFormat
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.util.DisplayMetrics
 import android.view.View
@@ -15,24 +18,34 @@ import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import java.io.File
+import rikka.shizuku.Shizuku
 
-class MainActivity : Activity() {
+class MainActivity : Activity(), Shizuku.OnRequestPermissionResultListener {
+
+    companion object {
+        private const val REQ_SHIZUKU = 100
+    }
 
     private lateinit var status: TextView
+    private lateinit var shizukuStatus: TextView
     private lateinit var editor: ZoneEditorView
     private lateinit var coordLabel: TextView
     private lateinit var btnFrame: Button
+    private lateinit var btnDaemon: Button
 
     private var frameView: View? = null
+    private val main = Handler(Looper.getMainLooper())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         status = findViewById(R.id.status)
+        shizukuStatus = findViewById(R.id.shizukuStatus)
         editor = findViewById(R.id.editor)
         coordLabel = findViewById(R.id.coordLabel)
         btnFrame = findViewById(R.id.btnFrame)
+        btnDaemon = findViewById(R.id.btnDaemon)
 
         Player.ensure(this)
         KeepAliveService.ensure(this)
@@ -47,21 +60,109 @@ class MainActivity : Activity() {
             Player.tapOnce(this)
             status.text = getString(R.string.status_played)
         }
-
         findViewById<Button>(R.id.btnSave).setOnClickListener {
             saveZone()
             updateLabel()
             Toast.makeText(this, R.string.saved, Toast.LENGTH_SHORT).show()
         }
-
         btnFrame.setOnClickListener { toggleZoneFrame() }
+        btnDaemon.setOnClickListener { toggleDaemon() }
+
+        try {
+            Shizuku.addRequestPermissionResultListener(this)
+        } catch (e: Throwable) {
+        }
+
+        // 打开 App 就自动把检测脚本拉起来
+        autoStartDaemon()
     }
 
-    override fun onPause() {
-        super.onPause()
-        // 退出 App 时撤掉边框，避免残留
-        hideZoneFrame()
+    override fun onResume() {
+        super.onResume()
+        refreshShizuku()
     }
+
+    override fun onDestroy() {
+        try {
+            Shizuku.removeRequestPermissionResultListener(this)
+        } catch (e: Throwable) {
+        }
+        super.onDestroy()
+    }
+
+    override fun onRequestPermissionResult(requestCode: Int, grantResult: Int) {
+        if (requestCode == REQ_SHIZUKU && grantResult == PackageManager.PERMISSION_GRANTED) {
+            Thread {
+                Shell.startDaemon()
+                main.post { refreshShizuku() }
+            }.start()
+        } else {
+            refreshShizuku()
+        }
+    }
+
+    private fun autoStartDaemon() {
+        Thread {
+            if (!Shell.available()) {
+                main.post { refreshShizuku() }
+                return@Thread
+            }
+            if (!Shell.hasPermission()) {
+                main.post { Shell.requestPermission(REQ_SHIZUKU) }
+                refreshShizuku()
+                return@Thread
+            }
+            Shell.startDaemon()
+            main.post { refreshShizuku() }
+        }.start()
+    }
+
+    private fun toggleDaemon() {
+        Thread {
+            if (Shell.daemonRunning()) {
+                Shell.stopDaemon()
+            } else {
+                if (!Shell.available()) {
+                    main.post {
+                        Toast.makeText(this, R.string.shizuku_not_running, Toast.LENGTH_LONG).show()
+                    }
+                    return@Thread
+                }
+                if (!Shell.hasPermission()) {
+                    main.post { Shell.requestPermission(REQ_SHIZUKU) }
+                    return@Thread
+                }
+                val ok = Shell.startDaemon()
+                if (!ok) {
+                    main.post {
+                        Toast.makeText(this, R.string.daemon_start_failed, Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+            main.post { refreshShizuku() }
+        }.start()
+    }
+
+    private fun refreshShizuku() {
+        Thread {
+            val avail = Shell.available()
+            val perm = Shell.hasPermission()
+            val running = if (perm) Shell.daemonRunning() else false
+            main.post {
+                shizukuStatus.text = when {
+                    !avail -> getString(R.string.shizuku_not_running)
+                    !perm -> getString(R.string.shizuku_no_permission)
+                    running -> getString(R.string.daemon_running)
+                    else -> getString(R.string.daemon_stopped)
+                }
+                btnDaemon.text =
+                    if (running) getString(R.string.btn_daemon_stop)
+                    else getString(R.string.btn_daemon_start)
+            }
+        }.start()
+    }
+
+    // ---------------- 热区配置 ----------------
 
     private fun zonesFile(): File {
         val dir = getExternalFilesDir(null) ?: filesDir
@@ -103,7 +204,8 @@ class MainActivity : Activity() {
             "${r.left.toInt()}, ${r.top.toInt()}  →  ${r.right.toInt()}, ${r.bottom.toInt()}"
     }
 
-    /** 临时显示热区边框：纯穿透，不拦截任何触摸，8 秒后自动消失 */
+    // ---------------- 热区边框 ----------------
+
     private fun toggleZoneFrame() {
         if (frameView != null) {
             hideZoneFrame()
@@ -159,7 +261,6 @@ class MainActivity : Activity() {
             (getSystemService(WINDOW_SERVICE) as WindowManager).addView(v, lp)
             frameView = v
             btnFrame.text = getString(R.string.btn_frame_hide)
-            // 8 秒后自动消失
             v.postDelayed({ hideZoneFrame() }, 8000)
         } catch (e: Exception) {
             Toast.makeText(this, "显示失败：" + e.message, Toast.LENGTH_LONG).show()
@@ -175,5 +276,10 @@ class MainActivity : Activity() {
         }
         frameView = null
         btnFrame.text = getString(R.string.btn_frame)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        hideZoneFrame()
     }
 }
