@@ -10,10 +10,8 @@ class BootReceiver : BroadcastReceiver() {
         if (intent?.action != Intent.ACTION_BOOT_COMPLETED) return
         val ctx = context ?: return
         KeepAliveService.ensure(ctx)
-        Thread {
-            if (Shell.available() && Shell.hasPermission()) {
-                Shell.startDaemon()
-            }
-        }.start()
+        if (Shell.available() && Shell.hasPermission()) {
+            Shell.startDaemon(ctx) { }
+        }
     }
 }
